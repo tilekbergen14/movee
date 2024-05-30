@@ -1,31 +1,13 @@
 package main
 
 import (
-	"net/http"
+	"log"
 
-	"github.com/gin-gonic/gin"
+	"github.com/tilekbergen14/movee-back/api"
 )
 
-type user struct {
-	Id       int    `json:"id"`
-	Username string `json:"username"`
-}
-
-var users = []user{
-	{Id: 546, Username: "John"},
-	{Id: 894, Username: "Mary"},
-	{Id: 326, Username: "Jane"},
-}
-
-func getUsers(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, users)
-}
-
 func main() {
-	router := gin.Default()
-
-	// new `GET /users` route associated with our `getUsers` function
-	router.GET("/users", getUsers)
-
-	router.Run("localhost:8080")
+	s := api.NewServer(":4000")
+	log.Println("Server running on port ", s.ListenAddr)
+	log.Println(s.Run())
 }
