@@ -1,17 +1,14 @@
 package types
 
-import "math/rand"
-
 type Movie struct {
-	Id          int
-	Name        string
-	Description string
-	Image       string
+	Id          int    `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Image       string `json:"image"`
 }
 
 func NewMovie(name, description, image string) *Movie {
 	return &Movie{
-		Id:          rand.Intn(1000000000),
 		Name:        name,
 		Description: description,
 		Image:       image,
