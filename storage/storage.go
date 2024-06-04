@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/lib/pq"
 
@@ -11,10 +12,92 @@ import (
 type Storage interface {
 	CreateMovie(*types.Movie) error
 	GetMovies() ([]*types.Movie, error)
+	DeleteMovie(id int) error
+	UpdateMovie(*types.Movie) error
+	GetMovieByid(id int) (*types.Movie, error)
 }
 
-type PostgresSql struct {
-	db *sql.DB
+func (s *PostgresSql) DeleteMovie(id int) error {
+	query := `DELETE FROM movie
+				WHERE id = $1`
+	_, err := s.db.Query(query, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *PostgresSql) UpdateMovie(movie *types.Movie) error {
+	query := `UPDATE movie
+				SET name = $1, description = $2, image = $3
+				WHERE id = $4;`
+	res, err := s.db.Query(query, movie.Name, movie.Description, movie.Image, movie.Id)
+
+	if !res.Next() {
+		return fmt.Errorf("can't find movie")
+	}
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *PostgresSql) GetMovieByid(id int) (*types.Movie, error) {
+	query := "select * from movie where id = $1"
+	res, err := s.db.Query(query, id)
+	if err != nil {
+		return nil, err
+	}
+	movie := &types.Movie{}
+	if !res.Next() {
+		return nil, fmt.Errorf("can't find movie")
+	}
+	for res.Next() {
+		if err := res.Scan(
+			&movie.Id,
+			&movie.Name,
+			&movie.Description,
+			&movie.Image,
+		); err != nil {
+			return nil, err
+		}
+	}
+	return movie, nil
+}
+
+func (s *PostgresSql) CreateMovie(movie *types.Movie) error {
+	query := `insert into movie (name, description, image)
+	values ($1, $2, $3)
+	`
+	_, err := s.db.Exec(query, movie.Name, movie.Description, movie.Image)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *PostgresSql) GetMovies() ([]*types.Movie, error) {
+	query := `select * from movie`
+	res, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	movies := []*types.Movie{}
+	for res.Next() {
+		movie := &types.Movie{}
+		if err := res.Scan(
+			&movie.Id,
+			&movie.Name,
+			&movie.Description,
+			&movie.Image,
+		); err != nil {
+			return nil, err
+		}
+		movies = append(movies, movie)
+	}
+
+	return movies, nil
 }
 
 func (s *PostgresSql) Init() error {
@@ -50,37 +133,6 @@ func NewPostgresStorage() (*PostgresSql, error) {
 	}, nil
 }
 
-func (s *PostgresSql) CreateMovie(movie *types.Movie) error {
-	query := `insert into movie (name, description, image)
-	values ($1, $2, $3)
-	`
-	_, err := s.db.Exec(query, movie.Name, movie.Description, movie.Image)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *PostgresSql) GetMovies() ([]*types.Movie, error) {
-	query := `select * from movie`
-	res, err := s.db.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	movies := []*types.Movie{}
-
-	for res.Next() {
-		movie := &types.Movie{}
-		if err := res.Scan(
-			&movie.Id,
-			&movie.Name,
-			&movie.Description,
-			&movie.Image,
-		); err != nil {
-			return nil, err
-		}
-		movies = append(movies, movie)
-	}
-
-	return movies, nil
+type PostgresSql struct {
+	db *sql.DB
 }
