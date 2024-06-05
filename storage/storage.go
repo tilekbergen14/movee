@@ -31,12 +31,7 @@ func (s *PostgresSql) UpdateMovie(movie *types.Movie) error {
 	query := `UPDATE movie
 				SET name = $1, description = $2, image = $3
 				WHERE id = $4;`
-	res, err := s.db.Query(query, movie.Name, movie.Description, movie.Image, movie.Id)
-
-	if !res.Next() {
-		return fmt.Errorf("can't find movie")
-	}
-
+	_, err := s.db.Query(query, movie.Name, movie.Description, movie.Image, movie.Id)
 	if err != nil {
 		return err
 	}
@@ -50,10 +45,9 @@ func (s *PostgresSql) GetMovieByid(id int) (*types.Movie, error) {
 		return nil, err
 	}
 	movie := &types.Movie{}
-	if !res.Next() {
-		return nil, fmt.Errorf("can't find movie")
-	}
+	empty := true
 	for res.Next() {
+		empty = false
 		if err := res.Scan(
 			&movie.Id,
 			&movie.Name,
@@ -62,6 +56,9 @@ func (s *PostgresSql) GetMovieByid(id int) (*types.Movie, error) {
 		); err != nil {
 			return nil, err
 		}
+	}
+	if empty {
+		return nil, fmt.Errorf("can't find movie")
 	}
 	return movie, nil
 }

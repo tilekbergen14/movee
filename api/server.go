@@ -31,13 +31,22 @@ func (s *Server) Run() error {
 
 	fs := http.FileServer(http.Dir("./assets/"))
 	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", fs))
-
+	router.Use(enableCORS)
 	router.HandleFunc("/handlefile", makeHttpHandleFunc(s.handleFile))
 
 	router.HandleFunc("/", makeHttpHandleFunc(s.handleHome))
 	router.HandleFunc("/movies", makeHttpHandleFunc(s.handleMovies))
 	router.HandleFunc("/movies/{id}", makeHttpHandleFunc(s.handleMoviesById))
 	return http.ListenAndServe(s.ListenAddr, router)
+}
+
+func enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) error {
